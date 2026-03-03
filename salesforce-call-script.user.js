@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Salesforce Call Script
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @description  Automate call registration in Salesforce
 // @author       mrenmk
 // @match        https://dsp-portal.lightning.force.com/lightning/r/Account/*
@@ -226,6 +226,7 @@
                                     <option value="Rostering">Rostering</option>
                                     <option value="Volume">Volume</option>
                                     <option value="Exit">Exit</option>
+                                    <option value="Other">Other</option>
                                 </select>
                             </div>
                         </div>
