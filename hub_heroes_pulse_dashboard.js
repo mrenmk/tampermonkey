@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         Hub Heroes Pulse Dashboard
-// @namespace    tampermonkey.net/
+// @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  Dashboard completo con todas las submissions del survey
-// @match        admin.pulse.aws/survey/Survey-3A6qjYlsZrSbvUBBCkFcPpFPLi1*
+// @match        https://admin.pulse.aws/survey/Survey-3A6qjYlsZrSbvUBBCkFcPpFPLi1*
 // @updateURL    https://raw.githubusercontent.com/mrenmk/tampermonkey/main/hub_heroes_pulse_dashboard.js
 // @downloadURL  https://raw.githubusercontent.com/mrenmk/tampermonkey/main/hub_heroes_pulse_dashboard.js
 // @grant        none
@@ -691,3 +691,4 @@
         init();
     }
 })();
+
