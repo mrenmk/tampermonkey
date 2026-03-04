@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hub Heroes Pulse Dashboard
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.0
 // @description  Dashboard completo con todas las submissions del survey
 // @author       mrenmk
 // @match        https://admin.pulse.aws/survey/Survey-3A6qjYlsZrSbvUBBCkFcPpFPLi1*
@@ -432,12 +432,28 @@
 
         metricsSection.id = 'metrics-section';
 
-        // Sección de gráficos
+        // Sección de gráficos y tabla de stations
         const chartsSection = document.createElement('div');
         chartsSection.style.cssText = `
             display: flex;
             gap: 20px;
             margin-bottom: 30px;
+        `;
+
+        const tableChartContainer = document.createElement('div');
+        tableChartContainer.style.cssText = 'flex: 1; background: #F2F2F2; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto;';
+        tableChartContainer.innerHTML = `
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; text-align: center;">Stations Summary</h3>
+            <table id="stationsTable" style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <thead style="position: sticky; top: 0; background: #232F3E; color: white; z-index: 10;">
+                    <tr>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Station</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Packages Not Saved</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Stores & Reason</th>
+                    </tr>
+                </thead>
+                <tbody id="stations-tbody"></tbody>
+            </table>
         `;
 
         const chartContainer1 = document.createElement('div');
@@ -448,6 +464,7 @@
         chartContainer2.style.cssText = 'flex: 1; background: #F2F2F2; padding: 15px; border-radius: 8px; max-height: 300px;';
         chartContainer2.innerHTML = '<canvas id="packagesChart"></canvas>';
 
+        chartsSection.appendChild(tableChartContainer);
         chartsSection.appendChild(chartContainer1);
         chartsSection.appendChild(chartContainer2);
 
@@ -659,8 +676,9 @@
             tbody.appendChild(row);
         });
 
-        // Actualizar gráficos
+        // Actualizar gráficos y tabla de stations
         updateCharts();
+        updateStationsTable();
     }
 
     // Función para descargar CSV
@@ -705,6 +723,47 @@
         URL.revokeObjectURL(link.href);
     }
 
+    // Función para actualizar la tabla de stations
+    function updateStationsTable() {
+        const stationData = {};
+
+        // Filtrar y agrupar por station
+        filteredSubmissions
+            .filter(s => s.hubHeroes === 'BACK TO STATION' || s.hubHeroes === 'STAY IN STORE')
+            .forEach(s => {
+                const station = s.station || 'Unknown';
+                if (!stationData[station]) {
+                    stationData[station] = {
+                        packagesNotSaved: 0,
+                        storesReasons: []
+                    };
+                }
+                stationData[station].packagesNotSaved += parseInt(s.packagesDropped) || 0;
+                if (s.store && s.reason) {
+                    stationData[station].storesReasons.push(`${s.store} (${s.reason})`);
+                }
+            });
+
+        // Actualizar tabla
+        const tbody = document.getElementById('stations-tbody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+
+        const stations = Object.keys(stationData).sort();
+        stations.forEach((station, index) => {
+            const data = stationData[station];
+            const row = document.createElement('tr');
+            row.style.cssText = `background: ${index % 2 === 0 ? 'white' : '#F2F2F2'};`;
+            row.innerHTML = `
+                <td style="padding: 8px; border: 1px solid #ddd;">${station}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${data.packagesNotSaved}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${data.storesReasons.join(', ')}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
     // Función para actualizar los gráficos
     function updateCharts() {
         // Destruir gráficos existentes
@@ -734,7 +793,7 @@
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Split por Reason',
+                        text: 'Split by Reason',
                         font: { size: 16, weight: 'bold' }
                     },
                     legend: { position: 'bottom' }
