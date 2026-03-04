@@ -3,6 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  Dashboard completo con todas las submissions del survey
+// @author       mrenmk
 // @match        https://admin.pulse.aws/survey/Survey-3A6qjYlsZrSbvUBBCkFcPpFPLi1*
 // @updateURL    https://raw.githubusercontent.com/mrenmk/tampermonkey/main/hub_heroes_pulse_dashboard.js
 // @downloadURL  https://raw.githubusercontent.com/mrenmk/tampermonkey/main/hub_heroes_pulse_dashboard.js
@@ -691,4 +692,5 @@
         init();
     }
 })();
+
 
