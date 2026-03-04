@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hub Heroes Pulse Dashboard
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Dashboard completo con todas las submissions del survey
 // @author       mrenmk
 // @match        https://admin.pulse.aws/survey/Survey-3A6qjYlsZrSbvUBBCkFcPpFPLi1*
@@ -37,15 +37,28 @@
 
     // Función para extraer el token de autorización
     function getAuthToken() {
-        // Buscar en las cookies o headers existentes
+        // Intentar obtener del localStorage (CurrentUser)
+        try {
+            const currentUser = localStorage.getItem('CurrentUser');
+            if (currentUser) {
+                const userData = JSON.parse(currentUser);
+                const token = userData?.state?.user?.accessToken;
+                if (token) return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+            }
+        } catch (e) {
+            console.warn('Error parsing CurrentUser from localStorage:', e);
+        }
+        
+        // Buscar en las cookies
         const cookies = document.cookie.split(';');
         for (let cookie of cookies) {
             if (cookie.includes('auth_token')) {
-                return cookie.split('=').trim();
+                const token = cookie.split('=')[1].trim();
+                return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
             }
         }
 
-        // Token hardcoded como fallback
+        // Token hardcoded como fallback (probablemente expirado)
         return 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ2ZXIiOjEsImlzcyI6Imh0dHBzOi8vYXBpLnB1bHNlLmF3cyIsInN1YiI6Im1yZW5tayIsInVzZXJuYW1lIjoibXJlbm1rIiwiZXhwIjoxNzcyNjI0NDQ3LCJyb2xlIjoic3RhZmYiLCJpYXQiOjE3NzI2MTAwNDd9.uGI8wBpJMPsYDFlRmvt2mfecA17ipCwiB3DgpdTNK-Q';
     }
 
@@ -242,7 +255,7 @@
             if (isLoading || document.getElementById('custom-dashboard')) return;
 
             isLoading = true;
-            dashboardTab.textContent = '⏳ Cargando...';
+            dashboardTab.textContent = '⏳ Loading...';
 
             try {
                 await fetchAllSubmissions();
@@ -292,7 +305,7 @@
             padding: 20px;
         `;
 
-        // Header con botón de cerrar
+        // Header con botones
         const header = document.createElement('div');
         header.style.cssText = `
             display: flex;
@@ -303,8 +316,40 @@
             border-bottom: 2px solid #146EB4;
         `;
 
+        const headerTitle = document.createElement('h2');
+        headerTitle.textContent = 'Hub Heroes Dashboard';
+        headerTitle.style.cssText = 'margin: 0; color: #232F3E;';
+
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.style.cssText = 'display: flex; gap: 10px;';
+
+        const updateButton = document.createElement('button');
+        updateButton.textContent = 'Update';
+        updateButton.id = 'update-button';
+        updateButton.style.cssText = `
+            background: #146EB4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        `;
+
+        const downloadButton = document.createElement('button');
+        downloadButton.textContent = 'Download CSV';
+        downloadButton.style.cssText = `
+            background: #232F3E;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        `;
+
         const closeButton = document.createElement('button');
-        closeButton.textContent = 'Cerrar';
+        closeButton.textContent = 'Close';
         closeButton.style.cssText = `
             background: #FF9900;
             color: white;
@@ -315,12 +360,12 @@
             font-weight: bold;
         `;
 
-        const headerTitle = document.createElement('h2');
-        headerTitle.textContent = 'Hub Heroes Dashboard';
-        headerTitle.style.cssText = 'margin: 0; color: #232F3E;';
+        buttonsContainer.appendChild(updateButton);
+        buttonsContainer.appendChild(downloadButton);
+        buttonsContainer.appendChild(closeButton);
 
         header.appendChild(headerTitle);
-        header.appendChild(closeButton);
+        header.appendChild(buttonsContainer);
 
         // Sección de filtros
         const filtersSection = document.createElement('div');
@@ -337,24 +382,24 @@
         filtersSection.innerHTML = `
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Fecha Inicio:</label>
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Start Date:</label>
                     <input type="date" id="filter-date-start" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Fecha Fin:</label>
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">End Date:</label>
                     <input type="date" id="filter-date-end" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Station (starts with):</label>
-                    <input type="text" id="filter-station" placeholder="Escribe para filtrar..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <input type="text" id="filter-station" placeholder="Type to filter..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Login (starts with):</label>
-                    <input type="text" id="filter-login" placeholder="Escribe para filtrar..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <input type="text" id="filter-login" placeholder="Type to filter..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                 </div>
                 <div style="position: relative;">
                     <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Reason:</label>
-                    <input type="text" id="filter-reason-display" readonly placeholder="Seleccionar..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; background: white;">
+                    <input type="text" id="filter-reason-display" readonly placeholder="Select..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; background: white;">
                     <div id="reason-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; margin-top: 2px; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
                         <div style="padding: 10px; border-bottom: 1px solid #eee;">
                             ${uniqueReasons.map(r => `
@@ -371,10 +416,10 @@
                 </div>
                 <div>
                     <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Store (starts with):</label>
-                    <input type="text" id="filter-store" placeholder="Escribe para filtrar..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <input type="text" id="filter-store" placeholder="Type to filter..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                 </div>
             </div>
-            <button id="clear-filters" style="background: #232F3E; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold;">Limpiar Filtros</button>
+            <button id="clear-filters" style="background: #232F3E; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold;">Clear Filters</button>
         `;
 
         // Sección de métricas agregadas
@@ -472,7 +517,7 @@
 
         document.getElementById('apply-reason-filter').addEventListener('click', () => {
             const selected = Array.from(document.querySelectorAll('.reason-checkbox:checked')).map(cb => cb.value);
-            reasonDisplay.value = selected.length > 0 ? `${selected.length} seleccionado(s)` : '';
+            reasonDisplay.value = selected.length > 0 ? `${selected.length} selected` : '';
             reasonDropdown.style.display = 'none';
             applyFilters();
         });
@@ -493,6 +538,26 @@
             document.querySelectorAll('.reason-checkbox').forEach(cb => cb.checked = false);
             document.getElementById('filter-store').value = '';
             applyFilters();
+        });
+
+        // Event listener para Update
+        updateButton.addEventListener('click', async function() {
+            updateButton.disabled = true;
+            updateButton.textContent = '⏳ Updating...';
+            try {
+                await fetchAllSubmissions();
+                applyFilters();
+            } catch (error) {
+                console.error('Error updating submissions:', error);
+                alert('Error updating data. Check console for details.');
+            }
+            updateButton.disabled = false;
+            updateButton.textContent = 'Update';
+        });
+
+        // Event listener para Download CSV
+        downloadButton.addEventListener('click', function() {
+            downloadCSV();
         });
 
         // Event listener para cerrar
@@ -598,6 +663,48 @@
         updateCharts();
     }
 
+    // Función para descargar CSV
+    function downloadCSV() {
+        const headers = ['Submission Date', 'Login', 'Store', 'Total Volume', 'Packages Dropped', 'Hub Heroes', 'Packages Saved', 'Reason', 'Station', 'Open Ticket'];
+        
+        const formatDate = (dateStr) => {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        };
+
+        const rows = filteredSubmissions.map(s => [
+            formatDate(s.submissionDate),
+            s.login || '',
+            s.store || '',
+            s.totalVolume || 0,
+            s.packagesDropped || 0,
+            s.hubHeroes || 0,
+            s.packagesSaved || 0,
+            s.reason || '',
+            s.station || '',
+            s.openTicket || ''
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'hub_heroes_data.csv';
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
     // Función para actualizar los gráficos
     function updateCharts() {
         // Destruir gráficos existentes
@@ -692,5 +799,3 @@
         init();
     }
 })();
-
-
