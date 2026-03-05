@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hub Heroes Pulse Dashboard
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Dashboard completo con todas las submissions del survey
 // @author       mrenmk
 // @match        https://admin.pulse.aws/survey/Survey-3A6qjYlsZrSbvUBBCkFcPpFPLi1*
@@ -18,9 +18,56 @@
     let filteredSubmissions = [];
     let isLoading = false;
     let chartInstances = { reason: null, packages: null };
+    let currentTheme = 'light';
+
+    // Paletas de colores para cada tema
+    const THEMES = {
+        light: {
+            background: '#FFFFFF',
+            text: '#232F3E',
+            textSecondary: '#687078',
+            cardBg: '#F2F2F2',
+            border: '#ddd',
+            headerBorder: '#146EB4',
+            tableHeaderBg: '#232F3E',
+            tableHeaderText: '#FFFFFF',
+            tableRowEven: '#FFFFFF',
+            tableRowOdd: '#F2F2F2',
+            inputBg: '#FFFFFF',
+            dropdownBg: '#FFFFFF'
+        },
+        dark: {
+            background: '#0F1B2A',
+            text: '#FFFFFF',
+            textSecondary: '#8996A9',
+            cardBg: '#16202D',
+            border: '#2D3F54',
+            headerBorder: '#146EB4',
+            tableHeaderBg: '#0D1117',
+            tableHeaderText: '#FFFFFF',
+            tableRowEven: '#16202D',
+            tableRowOdd: '#1A2633',
+            inputBg: '#1A2633',
+            dropdownBg: '#16202D'
+        }
+    };
 
     const SURVEY_ID = 'Survey-3A6qjYlsZrSbvUBBCkFcPpFPLi1';
     const PAGE_SIZE = 50;
+
+    // Función para detectar el tema actual
+    function getCurrentTheme() {
+        try {
+            const themeData = localStorage.getItem('theme');
+            if (themeData) {
+                const theme = JSON.parse(themeData);
+                return theme?.state?.theme || 'light';
+            }
+        } catch (e) {
+            console.warn('Error detecting theme:', e);
+        }
+        return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    }
 
     // Mapeo de field IDs a nombres de columnas
     const FIELD_MAP = {
@@ -289,6 +336,10 @@
     }
     // Función para crear el dashboard
     function createDashboard() {
+        // Detectar tema actual
+        currentTheme = getCurrentTheme();
+        const theme = THEMES[currentTheme];
+
         // Crear contenedor principal del dashboard
         const dashboardContainer = document.createElement('div');
         dashboardContainer.id = 'custom-dashboard';
@@ -298,7 +349,8 @@
             top: 0;
             right: 0;
             height: 100vh;
-            background: white;
+            background: ${theme.background};
+            color: ${theme.text};
             box-shadow: -2px 0 10px rgba(0,0,0,0.1);
             overflow-y: auto;
             z-index: 9999;
@@ -318,7 +370,7 @@
 
         const headerTitle = document.createElement('h2');
         headerTitle.textContent = 'Hub Heroes Dashboard';
-        headerTitle.style.cssText = 'margin: 0; color: #232F3E;';
+        headerTitle.style.cssText = `margin: 0; color: ${theme.text};`;
 
         const buttonsContainer = document.createElement('div');
         buttonsContainer.style.cssText = 'display: flex; gap: 10px;';
@@ -370,7 +422,7 @@
         // Sección de filtros
         const filtersSection = document.createElement('div');
         filtersSection.style.cssText = `
-            background: #F2F2F2;
+            background: ${theme.cardBg};
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -382,41 +434,41 @@
         filtersSection.innerHTML = `
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Start Date:</label>
-                    <input type="date" id="filter-date-start" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: ${theme.text};">Start Date:</label>
+                    <input type="date" id="filter-date-start" style="width: 100%; padding: 8px; border: 1px solid ${theme.border}; border-radius: 4px; background: ${theme.inputBg}; color: ${theme.text};">
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">End Date:</label>
-                    <input type="date" id="filter-date-end" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: ${theme.text};">End Date:</label>
+                    <input type="date" id="filter-date-end" style="width: 100%; padding: 8px; border: 1px solid ${theme.border}; border-radius: 4px; background: ${theme.inputBg}; color: ${theme.text};">
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Station (starts with):</label>
-                    <input type="text" id="filter-station" placeholder="Type to filter..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: ${theme.text};">Station (starts with):</label>
+                    <input type="text" id="filter-station" placeholder="Type to filter..." style="width: 100%; padding: 8px; border: 1px solid ${theme.border}; border-radius: 4px; background: ${theme.inputBg}; color: ${theme.text};">
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Login (starts with):</label>
-                    <input type="text" id="filter-login" placeholder="Type to filter..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: ${theme.text};">Login (starts with):</label>
+                    <input type="text" id="filter-login" placeholder="Type to filter..." style="width: 100%; padding: 8px; border: 1px solid ${theme.border}; border-radius: 4px; background: ${theme.inputBg}; color: ${theme.text};">
                 </div>
                 <div style="position: relative;">
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Reason:</label>
-                    <input type="text" id="filter-reason-display" readonly placeholder="Select..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; background: white;">
-                    <div id="reason-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; border-radius: 4px; margin-top: 2px; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
-                        <div style="padding: 10px; border-bottom: 1px solid #eee;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: ${theme.text};">Reason:</label>
+                    <input type="text" id="filter-reason-display" readonly placeholder="Select..." style="width: 100%; padding: 8px; border: 1px solid ${theme.border}; border-radius: 4px; cursor: pointer; background: ${theme.inputBg}; color: ${theme.text};">
+                    <div id="reason-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: ${theme.dropdownBg}; border: 1px solid ${theme.border}; border-radius: 4px; margin-top: 2px; max-height: 250px; overflow-y: auto; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                        <div style="padding: 10px; border-bottom: 1px solid ${theme.border};">
                             ${uniqueReasons.map(r => `
-                                <label style="display: block; padding: 5px; cursor: pointer; user-select: none;">
+                                <label style="display: block; padding: 5px; cursor: pointer; user-select: none; color: ${theme.text};">
                                     <input type="checkbox" value="${r}" class="reason-checkbox" style="margin-right: 8px;">
                                     ${r}
                                 </label>
                             `).join('')}
                         </div>
-                        <div style="padding: 10px; text-align: right; border-top: 1px solid #eee;">
+                        <div style="padding: 10px; text-align: right; border-top: 1px solid ${theme.border};">
                             <button id="apply-reason-filter" style="background: #146EB4; color: white; border: none; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">Apply</button>
                         </div>
                     </div>
                 </div>
                 <div>
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #232F3E;">Store (starts with):</label>
-                    <input type="text" id="filter-store" placeholder="Type to filter..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold; color: ${theme.text};">Store (starts with):</label>
+                    <input type="text" id="filter-store" placeholder="Type to filter..." style="width: 100%; padding: 8px; border: 1px solid ${theme.border}; border-radius: 4px; background: ${theme.inputBg}; color: ${theme.text};">
                 </div>
             </div>
             <button id="clear-filters" style="background: #232F3E; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px; font-weight: bold;">Clear Filters</button>
@@ -441,15 +493,15 @@
         `;
 
         const tableChartContainer = document.createElement('div');
-        tableChartContainer.style.cssText = 'flex: 1; background: #F2F2F2; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto;';
+        tableChartContainer.style.cssText = `flex: 1; background: ${theme.cardBg}; padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto;`;
         tableChartContainer.innerHTML = `
-            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; text-align: center;">Stations Summary</h3>
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: bold; text-align: center; color: ${theme.text};">Stations Summary</h3>
             <table id="stationsTable" style="width: 100%; border-collapse: collapse; font-size: 12px;">
-                <thead style="position: sticky; top: 0; background: #232F3E; color: white; z-index: 10;">
+                <thead style="position: sticky; top: 0; background: ${theme.tableHeaderBg}; color: ${theme.tableHeaderText}; z-index: 10;">
                     <tr>
-                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Station</th>
-                        <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">Packages Not Saved</th>
-                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Stores & Reason</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid ${theme.border};">Station</th>
+                        <th style="padding: 8px; text-align: right; border: 1px solid ${theme.border};">Packages Not Saved</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid ${theme.border};">Stores & Reason</th>
                     </tr>
                 </thead>
                 <tbody id="stations-tbody"></tbody>
@@ -457,11 +509,11 @@
         `;
 
         const chartContainer1 = document.createElement('div');
-        chartContainer1.style.cssText = 'flex: 1; background: #F2F2F2; padding: 15px; border-radius: 8px; max-height: 300px;';
+        chartContainer1.style.cssText = `flex: 1; background: ${theme.cardBg}; padding: 15px; border-radius: 8px; max-height: 300px;`;
         chartContainer1.innerHTML = '<canvas id="reasonChart"></canvas>';
 
         const chartContainer2 = document.createElement('div');
-        chartContainer2.style.cssText = 'flex: 1; background: #F2F2F2; padding: 15px; border-radius: 8px; max-height: 300px;';
+        chartContainer2.style.cssText = `flex: 1; background: ${theme.cardBg}; padding: 15px; border-radius: 8px; max-height: 300px;`;
         chartContainer2.innerHTML = '<canvas id="packagesChart"></canvas>';
 
         chartsSection.appendChild(tableChartContainer);
@@ -471,7 +523,7 @@
         // Tabla de datos
         const tableContainer = document.createElement('div');
         tableContainer.style.cssText = `
-            background: white;
+            background: ${theme.cardBg};
             border-radius: 8px;
             overflow-x: auto;
         `;
@@ -485,18 +537,18 @@
 
         // Header de la tabla con sticky
         table.innerHTML = `
-            <thead style="position: sticky; top: 0; z-index: 100; background: #232F3E;">
-                <tr style="background: #232F3E; color: white;">
-                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Submission Date</th>
-                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Login</th>
-                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Store</th>
-                    <th style="padding: 12px; text-align: right; border: 1px solid #ddd;">Total Volume</th>
-                    <th style="padding: 12px; text-align: right; border: 1px solid #ddd;">Packages Dropped</th>
-                    <th style="padding: 12px; text-align: right; border: 1px solid #ddd;">Hub Heroes</th>
-                    <th style="padding: 12px; text-align: right; border: 1px solid #ddd;">Packages Saved</th>
-                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Reason</th>
-                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Station</th>
-                    <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Open Ticket?</th>
+            <thead style="position: sticky; top: 0; z-index: 100; background: ${theme.tableHeaderBg};">
+                <tr style="background: ${theme.tableHeaderBg}; color: ${theme.tableHeaderText};">
+                    <th style="padding: 12px; text-align: left; border: 1px solid ${theme.border};">Submission Date</th>
+                    <th style="padding: 12px; text-align: left; border: 1px solid ${theme.border};">Login</th>
+                    <th style="padding: 12px; text-align: left; border: 1px solid ${theme.border};">Store</th>
+                    <th style="padding: 12px; text-align: right; border: 1px solid ${theme.border};">Total Volume</th>
+                    <th style="padding: 12px; text-align: right; border: 1px solid ${theme.border};">Packages Dropped</th>
+                    <th style="padding: 12px; text-align: right; border: 1px solid ${theme.border};">Hub Heroes</th>
+                    <th style="padding: 12px; text-align: right; border: 1px solid ${theme.border};">Packages Saved</th>
+                    <th style="padding: 12px; text-align: left; border: 1px solid ${theme.border};">Reason</th>
+                    <th style="padding: 12px; text-align: left; border: 1px solid ${theme.border};">Station</th>
+                    <th style="padding: 12px; text-align: left; border: 1px solid ${theme.border};">Open Ticket?</th>
                 </tr>
             </thead>
             <tbody id="submissions-tbody"></tbody>
@@ -582,6 +634,37 @@
             dashboardContainer.remove();
             deactivateDashboardTab();
         });
+
+        // Observar cambios de tema
+        const themeObserver = new MutationObserver(() => {
+            const newTheme = getCurrentTheme();
+            if (newTheme !== currentTheme) {
+                currentTheme = newTheme;
+                const dashboard = document.getElementById('custom-dashboard');
+                if (dashboard) {
+                    dashboard.remove();
+                    createDashboard();
+                }
+            }
+        });
+        themeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'theme') {
+                const newTheme = getCurrentTheme();
+                if (newTheme !== currentTheme) {
+                    currentTheme = newTheme;
+                    const dashboard = document.getElementById('custom-dashboard');
+                    if (dashboard) {
+                        dashboard.remove();
+                        createDashboard();
+                    }
+                }
+            }
+        });
     }
 
     // Función para aplicar filtros
@@ -622,21 +705,23 @@
 
     // Función para actualizar el dashboard con datos filtrados
     function updateDashboard() {
+        const theme = THEMES[currentTheme];
+        
         // Actualizar métricas
         const totalPackagesDropped = filteredSubmissions.reduce((sum, s) => sum + (parseInt(s.packagesDropped) || 0), 0);
         const totalPackagesSaved = filteredSubmissions.reduce((sum, s) => sum + (parseInt(s.packagesSaved) || 0), 0);
         const totalSubmissions = filteredSubmissions.length;
 
         document.getElementById('metrics-section').innerHTML = `
-            <div style="flex: 1; background: #F2F2F2; padding: 20px; border-radius: 8px; text-align: center;">
-                <div style="font-size: 32px; font-weight: bold; color: #232F3E;">${totalSubmissions}</div>
+            <div style="flex: 1; background: ${theme.cardBg}; padding: 20px; border-radius: 8px; text-align: center;">
+                <div style="font-size: 32px; font-weight: bold; color: ${theme.text};">${totalSubmissions}</div>
                 <div style="color: #146EB4; margin-top: 5px;">Total Submissions</div>
             </div>
-            <div style="flex: 1; background: #F2F2F2; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="flex: 1; background: ${theme.cardBg}; padding: 20px; border-radius: 8px; text-align: center;">
                 <div style="font-size: 32px; font-weight: bold; color: #FF9900;">${totalPackagesDropped}</div>
                 <div style="color: #146EB4; margin-top: 5px;">Packages Dropped</div>
             </div>
-            <div style="flex: 1; background: #F2F2F2; padding: 20px; border-radius: 8px; text-align: center;">
+            <div style="flex: 1; background: ${theme.cardBg}; padding: 20px; border-radius: 8px; text-align: center;">
                 <div style="font-size: 32px; font-weight: bold; color: #146EB4;">${totalPackagesSaved}</div>
                 <div style="color: #146EB4; margin-top: 5px;">Packages Saved</div>
             </div>
@@ -660,18 +745,18 @@
 
         filteredSubmissions.forEach((submission, index) => {
             const row = document.createElement('tr');
-            row.style.cssText = `background: ${index % 2 === 0 ? 'white' : '#F2F2F2'};`;
+            row.style.cssText = `background: ${index % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd}; color: ${theme.text};`;
             row.innerHTML = `
-                <td style="padding: 10px; border: 1px solid #ddd;">${formatDate(submission.submissionDate)}</td>
-                <td style="padding: 10px; border: 1px solid #ddd;">${submission.login || '-'}</td>
-                <td style="padding: 10px; border: 1px solid #ddd;">${submission.store || '-'}</td>
-                <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${submission.totalVolume || 0}</td>
-                <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${submission.packagesDropped || 0}</td>
-                <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${submission.hubHeroes || 0}</td>
-                <td style="padding: 10px; border: 1px solid #ddd; text-align: right;">${submission.packagesSaved || 0}</td>
-                <td style="padding: 10px; border: 1px solid #ddd;">${submission.reason || '-'}</td>
-                <td style="padding: 10px; border: 1px solid #ddd;">${submission.station || '-'}</td>
-                <td style="padding: 10px; border: 1px solid #ddd;">${submission.openTicket || '-'}</td>
+                <td style="padding: 10px; border: 1px solid ${theme.border};">${formatDate(submission.submissionDate)}</td>
+                <td style="padding: 10px; border: 1px solid ${theme.border};">${submission.login || '-'}</td>
+                <td style="padding: 10px; border: 1px solid ${theme.border};">${submission.store || '-'}</td>
+                <td style="padding: 10px; border: 1px solid ${theme.border}; text-align: right;">${submission.totalVolume || 0}</td>
+                <td style="padding: 10px; border: 1px solid ${theme.border}; text-align: right;">${submission.packagesDropped || 0}</td>
+                <td style="padding: 10px; border: 1px solid ${theme.border}; text-align: right;">${submission.hubHeroes || 0}</td>
+                <td style="padding: 10px; border: 1px solid ${theme.border}; text-align: right;">${submission.packagesSaved || 0}</td>
+                <td style="padding: 10px; border: 1px solid ${theme.border};">${submission.reason || '-'}</td>
+                <td style="padding: 10px; border: 1px solid ${theme.border};">${submission.station || '-'}</td>
+                <td style="padding: 10px; border: 1px solid ${theme.border};">${submission.openTicket || '-'}</td>
             `;
             tbody.appendChild(row);
         });
@@ -725,6 +810,7 @@
 
     // Función para actualizar la tabla de stations
     function updateStationsTable() {
+        const theme = THEMES[currentTheme];
         const stationData = {};
 
         // Filtrar y agrupar por station
@@ -754,11 +840,11 @@
         stations.forEach((station, index) => {
             const data = stationData[station];
             const row = document.createElement('tr');
-            row.style.cssText = `background: ${index % 2 === 0 ? 'white' : '#F2F2F2'};`;
+            row.style.cssText = `background: ${index % 2 === 0 ? theme.tableRowEven : theme.tableRowOdd}; color: ${theme.text};`;
             row.innerHTML = `
-                <td style="padding: 8px; border: 1px solid #ddd;">${station}</td>
-                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${data.packagesNotSaved}</td>
-                <td style="padding: 8px; border: 1px solid #ddd;">${data.storesReasons.join(', ')}</td>
+                <td style="padding: 8px; border: 1px solid ${theme.border};">${station}</td>
+                <td style="padding: 8px; border: 1px solid ${theme.border}; text-align: right;">${data.packagesNotSaved}</td>
+                <td style="padding: 8px; border: 1px solid ${theme.border};">${data.storesReasons.join(', ')}</td>
             `;
             tbody.appendChild(row);
         });
@@ -766,6 +852,8 @@
 
     // Función para actualizar los gráficos
     function updateCharts() {
+        const theme = THEMES[currentTheme];
+        
         // Destruir gráficos existentes
         if (chartInstances.reason) chartInstances.reason.destroy();
         if (chartInstances.packages) chartInstances.packages.destroy();
@@ -794,9 +882,13 @@
                     title: {
                         display: true,
                         text: 'Split by Reason',
-                        font: { size: 16, weight: 'bold' }
+                        font: { size: 16, weight: 'bold' },
+                        color: theme.text
                     },
-                    legend: { position: 'bottom' }
+                    legend: { 
+                        position: 'bottom',
+                        labels: { color: theme.text }
+                    }
                 }
             }
         });
@@ -822,9 +914,13 @@
                     title: {
                         display: true,
                         text: 'Packages Dropped vs Saved',
-                        font: { size: 16, weight: 'bold' }
+                        font: { size: 16, weight: 'bold' },
+                        color: theme.text
                     },
-                    legend: { position: 'bottom' }
+                    legend: { 
+                        position: 'bottom',
+                        labels: { color: theme.text }
+                    }
                 }
             }
         });
