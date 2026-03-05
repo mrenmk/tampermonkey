@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Hub Heroes Pulse Dashboard
 // @namespace    http://tampermonkey.net/
-// @version      1.3
+// @version      1.4
 // @description  Dashboard completo con todas las submissions del survey
 // @author       mrenmk
 // @match        https://admin.pulse.aws/survey/Survey-3A6qjYlsZrSbvUBBCkFcPpFPLi1*
@@ -954,6 +954,7 @@
         init();
     }
 })();
+
 
 
 
